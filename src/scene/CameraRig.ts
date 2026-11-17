@@ -56,6 +56,7 @@ export class CameraRig {
 
   private autoOrbitArmed = false;
   private userInteracting = false;
+  private frozen = false;
   private idleElapsed = 0;
   private rampElapsed = 0;
   private autoOrbitStrengthValue = 0;
@@ -136,7 +137,7 @@ export class CameraRig {
       return true;
     }
 
-    if (this.autoOrbitArmed && !this.userInteracting) {
+    if (this.autoOrbitArmed && !this.userInteracting && !this.frozen) {
       if (this.idleElapsed < this.autoOrbitResumeDelay) {
         this.idleElapsed += deltaTime;
         this.controls.autoRotate = false;
@@ -199,6 +200,13 @@ export class CameraRig {
 
   setEnabled(enabled: boolean): void {
     this.controls.enabled = enabled;
+  }
+
+  /** Holds auto-orbit (and everything riding `autoOrbitStrength`, e.g. mesh spin/pulse) at a
+   *  standstill — used by the debug zone editor so the target doesn't drift while hand-tuning
+   *  hitboxes. Dragging still works as normal while frozen. */
+  setIdleFrozen(frozen: boolean): void {
+    this.frozen = frozen;
   }
 
   dispose(): void {

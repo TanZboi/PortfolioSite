@@ -1,6 +1,27 @@
 import { el } from "../../utils/dom";
-import { aboutData } from "../../content/aboutData";
+import { aboutData, type ContactLink } from "../../content/aboutData";
+import { showToast } from "../toast";
 import type { PanelRenderer } from "../PanelController";
+
+async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function handleContactClick(contact: ContactLink): ((event: MouseEvent) => void) | undefined {
+  if (!contact.copyValue) return undefined;
+  const value = contact.copyValue;
+  return (event) => {
+    event.preventDefault();
+    void copyToClipboard(value).then((copied) => {
+      showToast(copied ? "Copied email address to your clipboard!" : `Copy failed — email: ${value}`);
+    });
+  };
+}
 
 export const aboutPanel: PanelRenderer = (container) => {
   container.classList.add("panel--back");
@@ -18,7 +39,20 @@ export const aboutPanel: PanelRenderer = (container) => {
     el(
       "div",
       { class: "about-contacts" },
-      aboutData.contacts.map((c) => el("a", { href: c.href, class: "about-contact", target: "_blank", rel: "noreferrer noopener" }, [c.label])),
+      aboutData.contacts.map((c) => {
+        const onClick = handleContactClick(c);
+        return el(
+          "a",
+          {
+            href: c.href,
+            class: "about-contact",
+            target: "_blank",
+            rel: "noreferrer noopener",
+            ...(onClick ? { onClick } : {}),
+          },
+          [c.label],
+        );
+      }),
     ),
     el("div", { class: "about-colophon" }, [
       el("h5", {}, ["Colophon"]),

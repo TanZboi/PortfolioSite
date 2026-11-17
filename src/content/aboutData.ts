@@ -1,6 +1,9 @@
 export interface ContactLink {
   label: string;
   href: string;
+  /** If set, clicking copies this value to the clipboard instead of following `href` — `href` is
+   *  kept as a real link too, for right-click "copy link"/opening in a new tab. */
+  copyValue?: string;
 }
 
 export interface AboutData {
@@ -17,12 +20,12 @@ export const aboutData: AboutData = {
     "This site is my general portfolio.",
   ],
   contacts: [
-    { label: "Email", href: "billtansey@pm.me" },
+    { label: "Email", href: "mailto:billtansey@pm.me", copyValue: "billtansey@pm.me" },
     { label: "GitHub", href: "https://www.github.com/TanZboi" },
     { label: "LinkedIn", href: "https://www.linkedin.com/in/bill-tansey-b29340292/" },
   ],
   colophon: [
     "Splat captured with Brush, cleaned and cropped in SuperSplat, rendered live with Spark.",
-    "Built with Three.js + TypeScript on Vite, with No React or game engine — direct scene-graph control.",
+    "Built with Three.js + TypeScript on Vite (without React or game engine).",
   ],
 };

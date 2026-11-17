@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { SplatMesh } from "@sparkjsdev/spark";
 import type { CameraRig } from "../scene/CameraRig";
+import type { InteractionZones } from "../zones/InteractionZones";
 
 export interface DebugContext {
   scene: THREE.Scene;
@@ -11,6 +12,7 @@ export interface DebugContext {
   center: THREE.Vector3;
   radius: number;
   cameraRig: CameraRig;
+  zones: InteractionZones;
 }
 
 declare global {

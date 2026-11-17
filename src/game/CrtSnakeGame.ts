@@ -1,8 +1,8 @@
 /**
  * An original grid-snake clone — not a ROM, not an emulator, no licensed assets. Exists so
  * the D-pad/buttons zone has something genuinely playable behind it instead of a static image.
- * The CRT look (scanlines/vignette/flicker) is a CSS overlay layered on top by gamePanel.ts;
- * this class only owns simulation + a flat, low-res, four-shade-green render of the board.
+ * Projected onto the Game Boy's in-scene screen by ScreenGamePlane.ts; this class only owns
+ * simulation + a flat, low-res, four-shade-green render of the board.
  */
 
 type Vec2 = { x: number; y: number };

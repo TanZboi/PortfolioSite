@@ -7,7 +7,9 @@ export type PanelRenderer = (container: HTMLElement, close: () => void) => (() =
 
 export interface PanelControllerOptions {
   container: HTMLElement;
-  renderers: Record<PanelId, PanelRenderer>;
+  /** Partial — a zone with no renderer here (e.g. one whose click is handled elsewhere, like the
+   *  in-scene mini-game) simply can't be opened as a popup. */
+  renderers: Partial<Record<PanelId, PanelRenderer>>;
   onOpenChange?: (open: boolean, id: PanelId | null) => void;
 }
 
@@ -19,7 +21,7 @@ export interface PanelControllerOptions {
 export class PanelController {
   private readonly root: HTMLElement;
   private readonly body: HTMLElement;
-  private readonly renderers: Record<PanelId, PanelRenderer>;
+  private readonly renderers: Partial<Record<PanelId, PanelRenderer>>;
   private readonly onOpenChange: ((open: boolean, id: PanelId | null) => void) | undefined;
 
   private currentId: PanelId | null = null;
@@ -52,11 +54,13 @@ export class PanelController {
   }
 
   open(id: PanelId): void {
+    const renderer = this.renderers[id];
+    if (!renderer) return;
+
     this.currentCleanup?.();
     this.currentCleanup = null;
     this.body.replaceChildren();
 
-    const renderer = this.renderers[id];
     const cleanup = renderer(this.body, () => this.close());
     if (cleanup) this.currentCleanup = cleanup;
 

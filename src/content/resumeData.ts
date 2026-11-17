@@ -34,9 +34,17 @@ export const resumeData: ResumeData = {
       org: "Wren Kitchens",
       period: "May 2025 – September 2026",
       bullets: [
-        "Independently ran my own team, managing my own stream of work.",
-        "Took ownership of a program area blah blah",
-        "-",
+        "Sole long-term owner of the 'Improvements' workstream (started as an onboarding task, retained permanently); occasionally directed other developers rotated in during downtime. Delivered 7 new auto-prop categories for Wren's 3D planning software, used daily by 3,000+ designers, saving several minutes per design appointment.",
+        "Conducted investigations into 3D Gaussian splatting of virtual scenes in real time 3D and virtual reality, local AI image generation and improvement and AI video frame interpolation.",
+      ],
+    },
+    {
+      role: "Climbing instructor",
+      org: "Rock Up Ltd",
+      period: "Dec 2022 – May 2025",
+      bullets: [
+        "Managed the climbing area as Arena Lead, delivering safety briefings and supervising climbers to ensure a safe and enjoyable experience for all participants.",
+        "Trained and mentored staff, helping to uphold high standards of customer service and operational efficiency.",
       ],
     },
   ],
@@ -45,12 +53,13 @@ export const resumeData: ResumeData = {
       role: "BSc Computer Science with Artificial Intelligence",
       org: "University Of Hull",
       period: "September 2023 – June 2027",
-      bullets: ["Final-year project: real-time 3D Gaussian Splatting (approved).", "Focused on machine learning and 3D graphics blah blah"],
+      bullets: ["Final-year project: real-time 3D Gaussian Splatting (approved - undertaking over the 2026 - 2027 year.)."],
     },
   ],
   skills: {
     "3D / Graphics": ["Unity", "Three.js", "WebGL", "Gaussian Splatting", "Shader graphs (Spark Dyno)"],
+    "AI & Machine Learning" : ["Mistral", "Pytorch", "NumPy", "Pandas", "XGBoost / LightGBM", "SciPy"],
     Languages: ["C#", "Python", "TypeScript"],
-    Tooling: ["Git", "Bitbucket", "Unity Cloud", "AWS", "Jenkins"],
+    Tooling: ["Git", "Bitbucket", "Unity Cloud", "AWS"],
   },
 };

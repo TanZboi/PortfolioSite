@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { InteractionZone, ZoneFractionSpec, ZoneId } from "./types";
+import type { InteractionZone, ZoneBoxSpec, ZoneFractionSpec, ZoneId } from "./types";
 import { ZONE_SPECS } from "./zoneConfig";
 import { getGlowTexture } from "./glowTexture";
 
@@ -19,20 +19,25 @@ export interface InteractionZonesOptions {
 const CLICK_MAX_MOVE_PX = 6;
 const CLICK_MAX_MS = 450;
 
-function zoneMeshFromSpec(spec: ZoneFractionSpec, bounds: THREE.Box3): { mesh: THREE.Mesh; extent: THREE.Vector3 } {
+function zoneMeshFromBox(
+  box: ZoneBoxSpec,
+  zoneId: ZoneId,
+  bounds: THREE.Box3,
+): { mesh: THREE.Mesh; extent: THREE.Vector3 } {
   const size = bounds.getSize(new THREE.Vector3());
   const center = new THREE.Vector3(
-    bounds.min.x + spec.at[0] * size.x,
-    bounds.min.y + spec.at[1] * size.y,
-    bounds.min.z + spec.at[2] * size.z,
+    bounds.min.x + box.at[0] * size.x,
+    bounds.min.y + box.at[1] * size.y,
+    bounds.min.z + box.at[2] * size.z,
   );
-  const extent = new THREE.Vector3(spec.extent[0] * size.x, spec.extent[1] * size.y, spec.extent[2] * size.z);
+  const extent = new THREE.Vector3(box.extent[0] * size.x, box.extent[1] * size.y, box.extent[2] * size.z);
 
   const geometry = new THREE.BoxGeometry(extent.x, extent.y, extent.z);
   const material = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.position.copy(center);
-  mesh.userData.zoneId = spec.id;
+  if (box.rotation) mesh.rotation.set(box.rotation[0], box.rotation[1], box.rotation[2]);
+  mesh.userData.zoneId = zoneId;
   // `renderOrder` keeps the (invisible) hitbox from participating in Spark's splat sort;
   // it never draws anything so this only matters if debug wireframe mode is toggled on.
   mesh.renderOrder = 10;
@@ -46,6 +51,9 @@ function zoneMeshFromSpec(spec: ZoneFractionSpec, bounds: THREE.Box3): { mesh: T
  */
 export class InteractionZones {
   readonly zones: InteractionZone[];
+  /** Kept for the debug editor, which needs to convert live mesh position/geometry back into
+   *  the same at/extent fractions the zones were authored in. */
+  readonly bounds: THREE.Box3;
 
   private readonly camera: THREE.PerspectiveCamera;
   private readonly domElement: HTMLElement;
@@ -59,7 +67,7 @@ export class InteractionZones {
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointerNdc = new THREE.Vector2();
   private readonly glowGroup = new THREE.Group();
-  private readonly glowByZone = new Map<ZoneId, THREE.Sprite>();
+  private readonly glowsByZone = new Map<ZoneId, THREE.Sprite[]>();
 
   private hoveredZone: InteractionZone | null = null;
   private pointerDownAt: { x: number; y: number; t: number } | null = null;
@@ -71,10 +79,13 @@ export class InteractionZones {
     this.domElement = options.domElement;
     this.onSelect = options.onSelect;
     this.parent = options.parent;
+    this.bounds = options.bounds;
 
     this.zones = ZONE_SPECS.map((spec) => this.buildZone(spec, options.bounds));
     for (const zone of this.zones) {
-      options.parent.add(zone.mesh);
+      for (const mesh of zone.meshes) {
+        options.parent.add(mesh);
+      }
     }
     options.parent.add(this.glowGroup);
 
@@ -85,7 +96,6 @@ export class InteractionZones {
   }
 
   private buildZone(spec: ZoneFractionSpec, bounds: THREE.Box3): InteractionZone {
-    const { mesh, extent } = zoneMeshFromSpec(spec, bounds);
     const localNormal = new THREE.Vector3(...spec.normal).normalize();
     // `spec.normal` is authored in the mesh's local space; rotate a copy into world space so the
     // angle-visibility check in update() is a plain world-space dot product against the (also
@@ -93,34 +103,49 @@ export class InteractionZones {
     // just the initial value — update() re-derives it from `localNormal` every frame.
     const normal = localNormal.clone().applyQuaternion(this.parent.quaternion);
 
-    const glow = new THREE.Sprite(
-      new THREE.SpriteMaterial({
-        map: getGlowTexture(),
-        color: 0x5eead4,
-        transparent: true,
-        opacity: 0,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      }),
-    );
-    const glowScale = Math.max(extent.x, extent.y) * 0.28;
-    glow.scale.setScalar(glowScale);
-    // Glow sprite is parented alongside the hitbox (both children of the splat mesh), so its
-    // offset off the surface uses the *local* normal, not the world-space one above.
-    const surfacePoint = mesh.position.clone().addScaledVector(localNormal, 0.04);
-    glow.position.copy(surfacePoint);
-    glow.userData.baseScale = glowScale;
-    this.glowGroup.add(glow);
-    this.glowByZone.set(spec.id, glow);
+    const meshes: THREE.Mesh[] = [];
+    const surfacePoints: THREE.Vector3[] = [];
+    const glows: THREE.Sprite[] = [];
+
+    // One mesh + one glow per box — most zones have a single box, but "controls" has one per
+    // physical button (see zoneConfig.ts). They all share the zone's normal/active/hovered state
+    // since they're all on the same face and trigger the same action.
+    for (const box of spec.boxes) {
+      const { mesh, extent } = zoneMeshFromBox(box, spec.id, bounds);
+      meshes.push(mesh);
+
+      const glow = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+          map: getGlowTexture(),
+          color: 0x5eead4,
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+        }),
+      );
+      const glowScale = Math.max(extent.x, extent.y) * 0.28;
+      glow.scale.setScalar(glowScale);
+      // Glow sprite is parented alongside the hitbox (both children of the splat mesh), so its
+      // offset off the surface uses the *local* normal, not the world-space one above.
+      const surfacePoint = mesh.position.clone().addScaledVector(localNormal, 0.04);
+      glow.position.copy(surfacePoint);
+      glow.userData.baseScale = glowScale;
+      this.glowGroup.add(glow);
+
+      surfacePoints.push(surfacePoint);
+      glows.push(glow);
+    }
+    this.glowsByZone.set(spec.id, glows);
 
     return {
       id: spec.id,
       label: spec.label,
       description: spec.description,
-      mesh,
+      meshes,
       localNormal,
       normal,
-      surfacePoint,
+      surfacePoints,
       visibilityThreshold: spec.visibilityThreshold,
       active: false,
       hovered: false,
@@ -137,10 +162,12 @@ export class InteractionZones {
   /** Toggle the debug view: zones render as visible wireframe boxes with full-opacity glow. */
   setDebugVisible(visible: boolean): void {
     for (const zone of this.zones) {
-      const material = zone.mesh.material as THREE.MeshBasicMaterial;
-      material.wireframe = visible;
-      material.opacity = visible ? 0.35 : 0;
-      material.color.set(zone.active ? 0x5eead4 : 0xff6b6b);
+      for (const mesh of zone.meshes) {
+        const material = mesh.material as THREE.MeshBasicMaterial;
+        material.wireframe = visible;
+        material.opacity = visible ? 0.35 : 0;
+        material.color.set(zone.active ? 0x5eead4 : 0xff6b6b);
+      }
     }
   }
 
@@ -156,27 +183,31 @@ export class InteractionZones {
       const facing = zone.normal.dot(viewDirWorld);
       zone.active = this.enabled && facing >= zone.visibilityThreshold;
 
-      const glow = this.glowByZone.get(zone.id);
-      if (!glow) continue;
-      const material = glow.material as THREE.SpriteMaterial;
+      const glows = this.glowsByZone.get(zone.id);
+      if (!glows) continue;
 
-      if (!zone.active) {
-        material.opacity = THREE.MathUtils.damp(material.opacity, 0, 8, deltaTime);
-        continue;
+      for (const glow of glows) {
+        const material = glow.material as THREE.SpriteMaterial;
+
+        if (!zone.active) {
+          material.opacity = THREE.MathUtils.damp(material.opacity, 0, 8, deltaTime);
+          continue;
+        }
+
+        // Phased per-glow (not per-zone) so a zone's several buttons don't pulse in lockstep.
+        const pulse = 0.75 + Math.sin(this.elapsed * 2.4 + glow.id) * 0.25;
+        const hoverBoost = zone.hovered ? 1.4 : 1;
+        const targetOpacity = pulse * 0.55 * hoverBoost;
+        material.opacity = THREE.MathUtils.damp(material.opacity, targetOpacity, 10, deltaTime);
+
+        const baseScale = glow.userData.baseScale as number;
+        glow.scale.setScalar(baseScale * (zone.hovered ? 1.25 : 1) * (0.92 + pulse * 0.16));
       }
-
-      const pulse = 0.75 + Math.sin(this.elapsed * 2.4 + zone.mesh.id) * 0.25;
-      const hoverBoost = zone.hovered ? 1.4 : 1;
-      const targetOpacity = pulse * 0.55 * hoverBoost;
-      material.opacity = THREE.MathUtils.damp(material.opacity, targetOpacity, 10, deltaTime);
-
-      const baseScale = glow.userData.baseScale as number;
-      glow.scale.setScalar(baseScale * (zone.hovered ? 1.25 : 1) * (0.92 + pulse * 0.16));
     }
   }
 
   private getActiveMeshes(): THREE.Mesh[] {
-    return this.zones.filter((z) => z.active).map((z) => z.mesh);
+    return this.zones.filter((z) => z.active).flatMap((z) => z.meshes);
   }
 
   private updatePointerNdc(event: PointerEvent): void {
@@ -237,11 +268,15 @@ export class InteractionZones {
     this.domElement.removeEventListener("pointerup", this.handlePointerUp);
     this.domElement.removeEventListener("pointerleave", this.handlePointerLeave);
     for (const zone of this.zones) {
-      zone.mesh.geometry.dispose();
-      (zone.mesh.material as THREE.Material).dispose();
+      for (const mesh of zone.meshes) {
+        mesh.geometry.dispose();
+        (mesh.material as THREE.Material).dispose();
+      }
     }
-    for (const glow of this.glowByZone.values()) {
-      (glow.material as THREE.SpriteMaterial).dispose();
+    for (const glows of this.glowsByZone.values()) {
+      for (const glow of glows) {
+        (glow.material as THREE.SpriteMaterial).dispose();
+      }
     }
   }
 }
