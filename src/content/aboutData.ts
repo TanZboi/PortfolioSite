@@ -15,8 +15,8 @@ export interface AboutData {
 /** Contact links are intentionally placeholders — fill in the real handles before deploying. */
 export const aboutData: AboutData = {
   bio: [
-    "I build real-time 3D graphics — most recently as a placement-year 3D developer, and next as " +
-      "the subject of my final-year Computer Science + AI project: 3D Gaussian Splatting.",
+    "I build real-time 3D graphics — I've just completed a placement year as a 3D developer, and I'm " +
+      "now working on my final-year Computer Science + AI project: 3D Gaussian Splatting.",
     "This site is my general portfolio.",
   ],
   contacts: [

@@ -33,7 +33,7 @@ export const resumePanel: PanelRenderer = (container) => {
 
   container.append(
     el("header", { class: "panel-header" }, [
-      el("div", { class: "panel-header__eyebrow" }, ["> resume.exe"]),
+      el("div", { class: "panel-header__eyebrow" }, ["> CV.exe"]),
       el("h2", {}, [resumeData.name]),
       el("div", { class: "panel-header__subtitle" }, [resumeData.title]),
     ]),

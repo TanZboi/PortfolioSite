@@ -24,7 +24,7 @@ export const resumeData: ResumeData = {
   name: "Bill Tansey",
   title: "3D/AI Developer",
   summary:
-    "3D developer finishing a placement year building real-time graphics work, now heading into " +
+    "3D developer who has completed a placement year building real-time graphics work, now in the " +
     "final year of a Computer Science + AI degree with an approved final-year project on 3D " +
     "Gaussian Splatting. This site is a live extension of that project: a working Spark/Three.js " +
     "renderer.",
@@ -41,7 +41,16 @@ export const resumeData: ResumeData = {
     {
       role: "Climbing instructor",
       org: "Rock Up Ltd",
-      period: "Dec 2022 – May 2025",
+      period: "Dec 2022 – May 2025, Sep 2026 - Present",
+      bullets: [
+        "Managed the climbing area as Arena Lead, delivering safety briefings and supervising climbers to ensure a safe and enjoyable experience for all participants.",
+        "Trained and mentored staff, helping to uphold high standards of customer service and operational efficiency.",
+      ],
+    },
+    {
+      role: "Computer Science Demonstrator",
+      org: "University of Hull",
+      period: "Sep 2026 - Present",
       bullets: [
         "Managed the climbing area as Arena Lead, delivering safety briefings and supervising climbers to ensure a safe and enjoyable experience for all participants.",
         "Trained and mentored staff, helping to uphold high standards of customer service and operational efficiency.",
